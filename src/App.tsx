@@ -4,6 +4,7 @@ import { useForm } from '@mantine/form';
 import { IconTrash, IconPlus, IconToolsKitchen2 } from '@tabler/icons-react';
 import { supabase } from './supabaseClient';
 import { Select } from '@mantine/core'; // Selectをインポートに追加
+import { Tabs } from '@mantine/core';
 
 // 型の定義（どんなデータか名前をつける）
 interface Ingredient {
@@ -149,31 +150,13 @@ export default function App() {
   };
 
   return (
-    <Container size="sm" py="xl">
-      <Stack gap="xl">
-        {/* --- 登録フォーム --- */}
-        <Paper withBorder p="xl" radius="md" shadow="sm">
-          <Title order={2} mb="lg">レシピを登録する</Title>
-          <form onSubmit={form.onSubmit(handleSave)}>
-            <Stack>
-              <TextInput label="料理名" placeholder="カレー" required {...form.getInputProps('recipeName')} />
-              {form.values.ingredients.map((_, index) => (
-                <Group key={index} align="flex-end">
-                  <TextInput label="材料" style={{ flex: 1 }} {...form.getInputProps(`ingredients.${index}.name`)} />
-                  <NumberInput label="価格" style={{ width: 100 }} {...form.getInputProps(`ingredients.${index}.price`)} />
-                  <ActionIcon color="red" variant="light" onClick={() => form.removeListItem('ingredients', index)}>
-                    <IconTrash size={16} />
-                  </ActionIcon>
-                </Group>
-              ))}
-              <Button variant="outline" leftSection={<IconPlus size={16} />} onClick={() => form.insertListItem('ingredients', { name: '', price: 0 })}>
-                材料を追加
-              </Button>
-              <Button type="submit" fullWidth mt="md">保存</Button>
-            </Stack>
-          </form>
-        </Paper>
+    <Tabs defaultValue="plan">
+      <Tabs.List>
+        <Tabs.Tab value="plan">今週の献立</Tabs.Tab>
+        <Tabs.Tab value="recipes">レシピ管理</Tabs.Tab>
+      </Tabs.List>
 
+      <Tabs.Panel value="plan">
         {/* --- 今週の献立エリア --- */}
         <Paper withBorder p="xl" radius="md" bg="blue.0">
           <Group justify="space-between" mb="md">
@@ -252,40 +235,70 @@ export default function App() {
             </Stack>
           </Group>
         </Paper>
+      </Tabs.Panel>
 
-        <Divider label="登録済みレシピ" labelPosition="center" />
-
-        {/* --- 一覧表示エリア --- */}
-        <Stack>
-          {recipes.length === 0 ? (
-            <Text c="dimmed" ta="center">レシピがまだありません</Text>
-          ) : (
-            recipes.map((recipe) => (
-              <Paper key={recipe.id} withBorder p="md" radius="md">
-                <Group justify="space-between" mb="xs">
-                  <Group>
-                    <IconToolsKitchen2 size={20} color="orange" />
-                    <Text fw={700} size="lg">{recipe.name}</Text>
-                  </Group>
-                  <Group>
-                    {/* 編集ボタン */}
-                    <Button variant="light" size="xs" onClick={() => handleEdit(recipe)}>変更</Button>
-                    {/* 削除ボタン */}
-                    <Button variant="light" color="red" size="xs" onClick={() => handleDelete(recipe.id)}>削除</Button>
-                  </Group>                  <Text size="sm" fw={700} c="blue">
-                    合計: {recipe.ingredients.reduce((sum, i) => sum + i.price, 0)}円
-                  </Text>
-                </Group>
-                <List size="sm" c="dimmed" withPadding>
-                  {recipe.ingredients.map((ing, idx) => (
-                    <List.Item key={idx}>{ing.name} ({ing.price}円)</List.Item>
+      <Tabs.Panel value="recipes">
+        <Container size="sm" py="xl">
+          <Stack gap="xl">
+            {/* --- 登録フォーム --- */}
+            <Paper withBorder p="xl" radius="md" shadow="sm">
+              <Title order={2} mb="lg">レシピを登録する</Title>
+              <form onSubmit={form.onSubmit(handleSave)}>
+                <Stack>
+                  <TextInput label="料理名" placeholder="カレー" required {...form.getInputProps('recipeName')} />
+                  {form.values.ingredients.map((_, index) => (
+                    <Group key={index} align="flex-end">
+                      <TextInput label="材料" style={{ flex: 1 }} {...form.getInputProps(`ingredients.${index}.name`)} />
+                      <NumberInput label="価格" style={{ width: 100 }} {...form.getInputProps(`ingredients.${index}.price`)} />
+                      <ActionIcon color="red" variant="light" onClick={() => form.removeListItem('ingredients', index)}>
+                        <IconTrash size={16} />
+                      </ActionIcon>
+                    </Group>
                   ))}
-                </List>
-              </Paper>
-            ))
-          )}
-        </Stack>
-      </Stack>
-    </Container>
+                  <Button variant="outline" leftSection={<IconPlus size={16} />} onClick={() => form.insertListItem('ingredients', { name: '', price: 0 })}>
+                    材料を追加
+                  </Button>
+                  <Button type="submit" fullWidth mt="md">保存</Button>
+                </Stack>
+              </form>
+            </Paper>
+
+
+            <Divider label="登録済みレシピ" labelPosition="center" />
+
+            {/* --- 一覧表示エリア --- */}
+            <Stack>
+              {recipes.length === 0 ? (
+                <Text c="dimmed" ta="center">レシピがまだありません</Text>
+              ) : (
+                recipes.map((recipe) => (
+                  <Paper key={recipe.id} withBorder p="md" radius="md">
+                    <Group justify="space-between" mb="xs">
+                      <Group>
+                        <IconToolsKitchen2 size={20} color="orange" />
+                        <Text fw={700} size="lg">{recipe.name}</Text>
+                      </Group>
+                      <Group>
+                        {/* 編集ボタン */}
+                        <Button variant="light" size="xs" onClick={() => handleEdit(recipe)}>変更</Button>
+                        {/* 削除ボタン */}
+                        <Button variant="light" color="red" size="xs" onClick={() => handleDelete(recipe.id)}>削除</Button>
+                      </Group>                  <Text size="sm" fw={700} c="blue">
+                        合計: {recipe.ingredients.reduce((sum, i) => sum + i.price, 0)}円
+                      </Text>
+                    </Group>
+                    <List size="sm" c="dimmed" withPadding>
+                      {recipe.ingredients.map((ing, idx) => (
+                        <List.Item key={idx}>{ing.name} ({ing.price}円)</List.Item>
+                      ))}
+                    </List>
+                  </Paper>
+                ))
+              )}
+            </Stack>
+          </Stack>
+        </Container>
+       </Tabs.Panel>
+    </Tabs>
   );
 }
