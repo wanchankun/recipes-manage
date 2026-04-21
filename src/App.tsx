@@ -19,6 +19,9 @@ interface Recipe {
 export default function App() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
 
+  // 今「編集」している最中かどうかを覚えておくための箱
+  const [editingId, setEditingId] = useState<string | null>(null);  
+
   const form = useForm({
     initialValues: {
       recipeName: '',
@@ -44,29 +47,63 @@ export default function App() {
     }
   };
 
+  // --- 削除ボタンを押した時 ---
+  const handleDelete = async (id: string) => {
+    if (confirm('このレシピを消してもいいですか？')) {
+      await supabase.from('recipes').delete().eq('id', id);
+      fetchRecipes(); // 画面を更新
+    }
+  };
+
+  // --- 編集ボタンを押した時 ---
+  const handleEdit = (recipe: Recipe) => {
+    setEditingId(recipe.id); // 「このIDを編集中です」と記録
+    // フォームの内容を、選んだレシピの内容に書き換える
+    form.setValues({
+      recipeName: recipe.name,
+      ingredients: recipe.ingredients.map(ing => ({ name: ing.name, price: ing.price }))
+    });
+    // 画面の上（フォーム）に戻る
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // 画面が開いた時に実行
   useEffect(() => {
     fetchRecipes();
   }, []);
 
   const handleSave = async (values: typeof form.values) => {
-    const { data: recipeData, error: recipeError } = await supabase
-      .from('recipes')
-      .insert([{ name: values.recipeName }])
-      .select().single();
+    if (editingId) {
+      // 【上書き保存】
+      // 1. 料理名を更新
+      await supabase.from('recipes').update({ name: values.recipeName }).eq('id', editingId);
+      // 2. 材料を一度全部消して、新しい内容を入れ直す（これが一番簡単！）
+      await supabase.from('ingredients').delete().eq('recipe_id', editingId);
+      const ingredientsToSave = values.ingredients.map((ing) => ({
+        recipe_id: editingId,
+        name: ing.name,
+        price: ing.price,
+      }));
+      await supabase.from('ingredients').insert(ingredientsToSave);
+      
+      setEditingId(null); // 編集モード終了
+    } else {
+      // 【新規登録】（今までのコードと同じ）
+      const { data: recipeData } = await supabase
+        .from('recipes').insert([{ name: values.recipeName }]).select().single();
+      
+      if (recipeData) {
+        const ingredientsToSave = values.ingredients.map((ing) => ({
+          recipe_id: recipeData.id,
+          name: ing.name,
+          price: ing.price,
+        }));
+        await supabase.from('ingredients').insert(ingredientsToSave);
+      }
+    }
 
-    if (recipeError) return;
-
-    const ingredientsToSave = values.ingredients.map((ing) => ({
-      recipe_id: recipeData.id,
-      name: ing.name,
-      price: ing.price,
-    }));
-
-    await supabase.from('ingredients').insert(ingredientsToSave);
-    
     form.reset();
-    fetchRecipes(); // 登録後にリストを更新
+    fetchRecipes();
   };
 
   return (
@@ -109,7 +146,12 @@ export default function App() {
                     <IconToolsKitchen2 size={20} color="orange" />
                     <Text fw={700} size="lg">{recipe.name}</Text>
                   </Group>
-                  <Text size="sm" fw={700} c="blue">
+                  <Group>
+                    {/* 編集ボタン */}
+                    <Button variant="light" size="xs" onClick={() => handleEdit(recipe)}>変更</Button>
+                    {/* 削除ボタン */}
+                    <Button variant="light" color="red" size="xs" onClick={() => handleDelete(recipe.id)}>削除</Button>
+                  </Group>                  <Text size="sm" fw={700} c="blue">
                     合計: {recipe.ingredients.reduce((sum, i) => sum + i.price, 0)}円
                   </Text>
                 </Group>
