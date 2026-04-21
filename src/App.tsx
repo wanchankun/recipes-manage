@@ -45,7 +45,7 @@ export default function App() {
       `);
     
     if (!error && data) {
-      setRecipes(data as any);
+      setRecipes(data as Recipe[]);
     }
   };
 
@@ -67,7 +67,7 @@ export default function App() {
     return d.toISOString().split('T')[0];
   });
 
-  const [plans, setPlans] = useState<{date: string, recipe_id: string}[]>([]);
+  const [plans, setPlans] = useState<{date: string, recipe_id: string | null}[]>([]);
 
   // 献立データを取得する
   const fetchPlans = async () => {
@@ -75,19 +75,26 @@ export default function App() {
     if (data) setPlans(data);
   };
 
-  // 画面を開いた時にレシピと一緒に取得
   useEffect(() => {
-    fetchRecipes();
-    fetchPlans();
-  }, []);
+    const loadData = async () => {
+      // await を使って順番に処理することで、連鎖的な更新を防ぎます
+      await fetchRecipes();
+      await fetchPlans();
+    };
+    
+    loadData();
+  }, []); // ここが空配列なら「画面が開いた時だけ」実行されます
 
   // 献立を更新する（選んだ瞬間にDBに保存する）
-  const updatePlan = async (day: string, recipeId: string | null) => {
-    await supabase
+  const updatePlan = async (dateStr: string, recipeId: string | null) => {
+    const { error } = await supabase
       .from('weekly_plans')
-      .update({ recipe_id: recipeId })
-      .eq('day_of_week', day);
-    fetchPlans(); // 合計金額などを再計算するために再取得
+      .upsert({ date: dateStr, recipe_id: recipeId }, { onConflict: 'date' }); // upsertを使うのがプロの技！
+
+    if (error) {
+      console.error('保存エラー:', error);
+    }
+    fetchPlans(); 
   };
 
   // --- 削除ボタンを押した時 ---
@@ -109,11 +116,6 @@ export default function App() {
     // 画面の上（フォーム）に戻る
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
-  // 画面が開いた時に実行
-  useEffect(() => {
-    fetchRecipes();
-  }, []);
 
   const handleSave = async (values: typeof form.values) => {
     if (editingId) {
