@@ -158,83 +158,85 @@ export default function App() {
 
       <Tabs.Panel value="plan">
         {/* --- 今週の献立エリア --- */}
-        <Paper withBorder p="xl" radius="md" bg="blue.0">
-          <Group justify="space-between" mb="md">
-            <Button variant="subtle" onClick={() => {
-              const d = new Date(baseDate);
-              d.setDate(d.getDate() - 7);
-              setBaseDate(d.toISOString().split('T')[0]);
-            }}>← 前の週</Button>
-            
-            <Title order={3} c="blue.9">
-              {baseDate} の週
-            </Title>
-            
-            <Button variant="subtle" onClick={() => {
-              const d = new Date(baseDate);
-              d.setDate(d.getDate() + 7);
-              setBaseDate(d.toISOString().split('T')[0]);
-            }}>次の週 →</Button>
-          </Group>
+        <Container size="sm" py="xl">
+          <Paper withBorder p="xl" radius="md" bg="blue.0">
+            <Group justify="space-between" mb="md">
+              <Button variant="subtle" onClick={() => {
+                const d = new Date(baseDate);
+                d.setDate(d.getDate() - 7);
+                setBaseDate(d.toISOString().split('T')[0]);
+              }}>← 前の週</Button>
+              
+              <Title order={3} c="blue.9">
+                {baseDate} の週
+              </Title>
+              
+              <Button variant="subtle" onClick={() => {
+                const d = new Date(baseDate);
+                d.setDate(d.getDate() + 7);
+                setBaseDate(d.toISOString().split('T')[0]);
+              }}>次の週 →</Button>
+            </Group>
 
-          <Stack gap="xs">
-            {weekDays.map((dateStr) => {
-              const plan = plans.find(p => p.date === dateStr);
-              const dayLabels = ['日', '月', '火', '水', '木', '金', '土'];
-              const dayName = dayLabels[new Date(dateStr).getDay()];
+            <Stack gap="xs">
+              {weekDays.map((dateStr) => {
+                const plan = plans.find(p => p.date === dateStr);
+                const dayLabels = ['日', '月', '火', '水', '木', '金', '土'];
+                const dayName = dayLabels[new Date(dateStr).getDay()];
 
-              return (
-                <Group key={dateStr} grow>
-                  <Text fw={700} w={80}>{dateStr.slice(5)} ({dayName})</Text>
-                  <Select
-                    placeholder="料理を選択"
-                    data={recipes.map(r => ({ value: r.id, label: r.name }))}
-                    value={plan?.recipe_id || null}
-                    onChange={(value) => updatePlan(dateStr, value)}
-                    clearable
-                  />
-                </Group>
-              );
-            })}
-          </Stack>
-
-          {/* --- 合計金額の表示エリア --- */}
-          <Group justify="space-between">
-            <Stack gap={0}>
-              <Text size="xs" c="dimmed" fw={700}>合計</Text>
-              <Text size="xl" fw={900} c="blue">
-                {/* 1週間分の合計計算 */}
-                {weekDays.reduce((weeklyTotal, dateStr) => {
-                  // 1. その日の献立（plan）を探す
-                  const plan = plans.find(p => p.date === dateStr);
-                  if (!plan || !plan.recipe_id) return weeklyTotal;
-
-                  // 2. その献立のレシピ情報を探す
-                  const recipe = recipes.find(r => r.id === plan.recipe_id);
-                  if (!recipe) return weeklyTotal;
-
-                  // 3. そのレシピの材料費を合計する
-                  const recipeTotal = recipe.ingredients.reduce((sum, ing) => sum + ing.price, 0);
-                  
-                  return weeklyTotal + recipeTotal;
-                }, 0).toLocaleString()} {/* 3桁カンマ区切りにする */}
-                <Text span size="sm" ml={4}>円</Text>
-              </Text>
+                return (
+                  <Group key={dateStr} grow>
+                    <Text fw={700} w={80}>{dateStr.slice(5)} ({dayName})</Text>
+                    <Select
+                      placeholder="料理を選択"
+                      data={recipes.map(r => ({ value: r.id, label: r.name }))}
+                      value={plan?.recipe_id || null}
+                      onChange={(value) => updatePlan(dateStr, value)}
+                      clearable
+                    />
+                  </Group>
+                );
+              })}
             </Stack>
 
-            {/* おまけ：1日あたりの平均も出せます */}
-            <Stack gap={0} align="flex-end">
-              <Text size="xs" c="dimmed">1日平均</Text>
-              <Text fw={700}>
-                {Math.round(weekDays.reduce((weeklyTotal, dateStr) => {
-                  const plan = plans.find(p => p.date === dateStr);
-                  const recipe = recipes.find(r => r.id === (plan?.recipe_id));
-                  return weeklyTotal + (recipe?.ingredients.reduce((s, i) => s + i.price, 0) || 0);
-                }, 0) / 7).toLocaleString()} 円
-              </Text>
-            </Stack>
-          </Group>
-        </Paper>
+            {/* --- 合計金額の表示エリア --- */}
+            <Group justify="space-between">
+              <Stack gap={0}>
+                <Text size="xs" c="dimmed" fw={700}>合計</Text>
+                <Text size="xl" fw={900} c="blue">
+                  {/* 1週間分の合計計算 */}
+                  {weekDays.reduce((weeklyTotal, dateStr) => {
+                    // 1. その日の献立（plan）を探す
+                    const plan = plans.find(p => p.date === dateStr);
+                    if (!plan || !plan.recipe_id) return weeklyTotal;
+
+                    // 2. その献立のレシピ情報を探す
+                    const recipe = recipes.find(r => r.id === plan.recipe_id);
+                    if (!recipe) return weeklyTotal;
+
+                    // 3. そのレシピの材料費を合計する
+                    const recipeTotal = recipe.ingredients.reduce((sum, ing) => sum + ing.price, 0);
+                    
+                    return weeklyTotal + recipeTotal;
+                  }, 0).toLocaleString()} {/* 3桁カンマ区切りにする */}
+                  <Text span size="sm" ml={4}>円</Text>
+                </Text>
+              </Stack>
+
+              {/* おまけ：1日あたりの平均も出せます */}
+              <Stack gap={0} align="flex-end">
+                <Text size="xs" c="dimmed">1日平均</Text>
+                <Text fw={700}>
+                  {Math.round(weekDays.reduce((weeklyTotal, dateStr) => {
+                    const plan = plans.find(p => p.date === dateStr);
+                    const recipe = recipes.find(r => r.id === (plan?.recipe_id));
+                    return weeklyTotal + (recipe?.ingredients.reduce((s, i) => s + i.price, 0) || 0);
+                  }, 0) / 7).toLocaleString()} 円
+                </Text>
+              </Stack>
+            </Group>
+          </Paper>
+        </Container>
       </Tabs.Panel>
 
       <Tabs.Panel value="recipes">
