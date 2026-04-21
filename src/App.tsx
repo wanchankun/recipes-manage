@@ -66,7 +66,7 @@ export default function App() {
     return d.toISOString().split('T')[0];
   });
 
-  const [plans, setPlans] = useState<{day_of_week: string, recipe_id: string}[]>([]);
+  const [plans, setPlans] = useState<{date: string, recipe_id: string}[]>([]);
 
   // 献立データを取得する
   const fetchPlans = async () => {
