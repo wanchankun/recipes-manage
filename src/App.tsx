@@ -218,7 +218,7 @@ export default function App() {
           {/* --- 合計金額の表示エリア --- */}
           <Group justify="space-between">
             <Stack gap={0}>
-              <Text size="xs" c="dimmed" fw={700}>SELECTED WEEK TOTAL</Text>
+              <Text size="xs" c="dimmed" fw={700}>合計</Text>
               <Text size="xl" fw={900} c="blue">
                 {/* 1週間分の合計計算 */}
                 {weekDays.reduce((weeklyTotal, dateStr) => {
