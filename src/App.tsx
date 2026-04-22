@@ -80,15 +80,49 @@ export default function App() {
     if (data) setPlans(data);
   };
 
+  // チェック状態を保存する箱
+  const [checkedIngredients, setCheckedIngredients] = useState<string[]>([]);
+
+  // チェック状態を取得する
+  const fetchChecks = async () => {
+    const { data } = await supabase.from('ingredient_checks').select('*');
+    if (data) {
+      // 画面で扱いやすいように「日付-レシピID-材料名」の形式の文字列リストにする
+      const checkIds = data.map(c => `${c.date}-${c.recipe_id}-${c.ingredient_name}`);
+      setCheckedIngredients(checkIds);
+    }
+  };
+
+  // チェックを切り替える（DBに保存）
+  const toggleIngredient = async (dateStr: string, recipeId: string, ingredientName: string) => {
+    const key = `${dateStr}-${recipeId}-${ingredientName}`;
+    const isCurrentlyChecked = checkedIngredients.includes(key);
+
+    if (isCurrentlyChecked) {
+      // チェックを外す（DBから削除）
+      await supabase.from('ingredient_checks')
+        .delete()
+        .eq('date', dateStr)
+        .eq('recipe_id', recipeId)
+        .eq('ingredient_name', ingredientName);
+    } else {
+      // チェックを入れる（DBに保存）
+      await supabase.from('ingredient_checks')
+        .insert({ date: dateStr, recipe_id: recipeId, ingredient_name: ingredientName });
+    }
+    
+    fetchChecks(); // 画面を更新
+  };
+
   useEffect(() => {
     const loadData = async () => {
-      // await を使って順番に処理することで、連鎖的な更新を防ぎます
+     // await を使って順番に処理することで、連鎖的な更新を防ぎます
       await fetchRecipes();
       await fetchPlans();
+      await fetchChecks(); // これを追加
     };
-    
     loadData();
-  }, []); // ここが空配列なら「画面が開いた時だけ」実行されます
+  }, []);
 
   // 献立を更新する（選んだ瞬間にDBに保存する）
   const updatePlan = async (dateStr: string, recipeId: string | null) => {
@@ -191,9 +225,10 @@ export default function App() {
                 const dayLabels = ['日', '月', '火', '水', '木', '金', '土'];
                 const dayName = dayLabels[new Date(dateStr).getDay()];
 
-                // ★ 追加：選ばれているレシピの情報を探しておく
+                // ★ 選ばれているレシピの情報を探しておく
                 const selectedRecipe = recipes.find(r => r.id === plan?.recipe_id);
 
+                {/* 献立エリアの材料表示部分 */}
                 return (
                   <Paper key={dateStr} withBorder p="xs" mb="xs" radius="md">
                     <Group grow mb={selectedRecipe ? "xs" : 0}>
@@ -208,17 +243,33 @@ export default function App() {
                     </Group>
 
                     {/* ★ ここから：レシピが選ばれている時だけ材料を表示する */}
-                    {selectedRecipe && (
-                      <Box pl={85}> {/* 日付の幅に合わせて少し右にずらすときれいです */}
-                        <Group gap="xs">
-                          {selectedRecipe.ingredients.map((ing, idx) => (
-                            <Badge key={idx} variant="dot" color="gray" size="sm">
-                              {ing.name}
-                            </Badge>
-                          ))}
-                        </Group>
-                      </Box>
-                    )}
+                    {selectedRecipe?.ingredients.map((ing, idx) => {
+                      const ingredientKey = `${dateStr}-${selectedRecipe.id}-${ing.name}`;
+                      const isChecked = checkedIngredients.includes(ingredientKey);
+
+                      return (
+                        <Text 
+                          key={idx} 
+                          size="xs" 
+                          px={8} 
+                          py={2} 
+                          // toggleIngredientに 必要な情報を渡す
+                          onClick={() => toggleIngredient(dateStr, selectedRecipe.id, ing.name)}
+                          style={{ 
+                            borderRadius: '10px', 
+                            border: '1px solid',
+                            borderColor: isChecked ? '#e0e0e0' : '#339af0',
+                            backgroundColor: isChecked ? '#f8f9fa' : 'white',
+                            color: isChecked ? '#adb5bd' : '#339af0',
+                            textDecoration: isChecked ? 'line-through' : 'none',
+                            cursor: 'pointer',
+                            userSelect: 'none'
+                          }}
+                        >
+                          {ing.name}
+                        </Text>
+                      );
+                    })}
                   </Paper>
                 );
               })}
