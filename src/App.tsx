@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { TextInput, NumberInput, Button, Stack, Container, Title, Group, ActionIcon, Paper, List, Text, Divider } from '@mantine/core';
+import { TextInput, NumberInput, Button, Stack, Container, Title, Group, ActionIcon, Paper, List, Text, Divider, Box } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { IconTrash, IconPlus, IconToolsKitchen2 } from '@tabler/icons-react';
 import { supabase } from './supabaseClient';
@@ -242,34 +242,42 @@ export default function App() {
                       />
                     </Group>
 
-                    {/* ★ ここから：レシピが選ばれている時だけ材料を表示する */}
-                    {selectedRecipe?.ingredients.map((ing, idx) => {
-                      const ingredientKey = `${dateStr}-${selectedRecipe.id}-${ing.name}`;
-                      const isChecked = checkedIngredients.includes(ingredientKey);
+                    <Group gap="sm" mt="xs" pl={0} justify="flex-start" style={{ flexWrap: 'wrap' }}>
+                      {/* ★ ここから：レシピが選ばれている時だけ材料を表示する */}
+                      {selectedRecipe?.ingredients.map((ing, idx) => {
+                        const ingredientKey = `${dateStr}-${selectedRecipe.id}-${ing.name}`;
+                        const isChecked = checkedIngredients.includes(ingredientKey);
 
-                      return (
-                        <Text 
-                          key={idx} 
-                          size="xs" 
-                          px={8} 
-                          py={2} 
-                          // toggleIngredientに 必要な情報を渡す
-                          onClick={() => toggleIngredient(dateStr, selectedRecipe.id, ing.name)}
-                          style={{ 
-                            borderRadius: '10px', 
-                            border: '1px solid',
-                            borderColor: isChecked ? '#e0e0e0' : '#339af0',
-                            backgroundColor: isChecked ? '#f8f9fa' : 'white',
-                            color: isChecked ? '#adb5bd' : '#339af0',
-                            textDecoration: isChecked ? 'line-through' : 'none',
-                            cursor: 'pointer',
-                            userSelect: 'none'
-                          }}
-                        >
-                          {ing.name}
-                        </Text>
-                      );
-                    })}
+                        return (
+                          <Box
+                            key={idx}
+                            onClick={() => toggleIngredient(dateStr, selectedRecipe.id, ing.name)}
+                            style={{
+                              // --- スマホで押しやすくするための設定 ---
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              padding: '10px 16px', // 上下左右にたっぷり余白をとる（重要！）
+                              fontSize: '14px',     // 文字を少し大きく
+                              borderRadius: '20px', // 丸みをもたせてボタン感を出す
+                              cursor: 'pointer',
+                              userSelect: 'none',
+                              transition: 'all 0.2s',
+                              border: '1px solid',
+                              // --- 状態による見た目の変化 ---
+                              borderColor: isChecked ? '#e0e0e0' : '#339af0',
+                              backgroundColor: isChecked ? '#f8f9fa' : '#ebf7ff',
+                              color: isChecked ? '#adb5bd' : '#1c7ed6',
+                              textDecoration: isChecked ? 'line-through' : 'none',
+                              // 押しやすくするために最小の幅を持たせる
+                              minWidth: '80px',
+                              justifyContent: 'center'
+                            }}
+                          >
+                            {ing.name}
+                          </Box>
+                        );
+                      })}
+                    </Group>
                   </Paper>
                 );
               })}
