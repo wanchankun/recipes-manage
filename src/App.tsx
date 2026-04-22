@@ -49,12 +49,17 @@ export default function App() {
     }
   };
 
-  // 今週の月曜日の日付を取得する関数
+    // 今週の月曜日の日付を取得する関数
   const getMonday = (d: Date) => {
     const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // 月曜日を計算
+    // 日曜(0)なら6日戻し、それ以外なら (day - 1)日戻す
+    const diff = d.getDate() - (day === 0 ? 6 : day - 1); 
     const monday = new Date(d.setDate(diff));
-    return monday.toISOString().split('T')[0]; // '2026-04-20' 形式に変換
+    // 日本時間のまま日付文字列にするための工夫
+    const y = monday.getFullYear();
+    const m = String(monday.getMonth() + 1).padStart(2, '0');
+    const date = String(monday.getDate()).padStart(2, '0');
+    return `${y}-${m}-${date}`;
   };
 
   // 基準となる日（今週の月曜）
@@ -183,7 +188,7 @@ export default function App() {
             <Stack gap="xs">
               {weekDays.map((dateStr) => {
                 const plan = plans.find(p => p.date === dateStr);
-                const dayLabels = ['日', '月', '火', '水', '木', '金', '土'];
+                const dayLabels = ['月', '火', '水', '木', '金', '土', '日'];
                 const dayName = dayLabels[new Date(dateStr).getDay()];
 
                 return (
