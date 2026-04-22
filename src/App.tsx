@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { TextInput, NumberInput, Button, Stack, Container, Title, Group, ActionIcon, Paper, List, Text, Divider } from '@mantine/core';
+import { TextInput, NumberInput, Button, Stack, Container, Title, Group, ActionIcon, Paper, List, Text, Divider, Box, Badge } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { IconTrash, IconPlus, IconToolsKitchen2 } from '@tabler/icons-react';
 import { supabase } from './supabaseClient';
