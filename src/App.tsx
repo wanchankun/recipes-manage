@@ -191,17 +191,35 @@ export default function App() {
                 const dayLabels = ['日', '月', '火', '水', '木', '金', '土'];
                 const dayName = dayLabels[new Date(dateStr).getDay()];
 
+                // ★ 追加：選ばれているレシピの情報を探しておく
+                const selectedRecipe = recipes.find(r => r.id === plan?.recipe_id);
+
                 return (
-                  <Group key={dateStr} grow>
-                    <Text fw={700} w={80}>{dateStr.slice(5)} ({dayName})</Text>
-                    <Select
-                      placeholder="料理を選択"
-                      data={recipes.map(r => ({ value: r.id, label: r.name }))}
-                      value={plan?.recipe_id || null}
-                      onChange={(value) => updatePlan(dateStr, value)}
-                      clearable
-                    />
-                  </Group>
+                  <Paper key={dateStr} withBorder p="xs" mb="xs" radius="md">
+                    <Group grow mb={selectedRecipe ? "xs" : 0}>
+                      <Text fw={700} w={80}>{dateStr.slice(5)} ({dayName})</Text>
+                      <Select
+                        placeholder="料理を選択"
+                        data={recipes.map(r => ({ value: r.id, label: r.name }))}
+                        value={plan?.recipe_id || null}
+                        onChange={(value) => updatePlan(dateStr, value)}
+                        clearable
+                      />
+                    </Group>
+
+                    {/* ★ ここから：レシピが選ばれている時だけ材料を表示する */}
+                    {selectedRecipe && (
+                      <Box pl={85}> {/* 日付の幅に合わせて少し右にずらすときれいです */}
+                        <Group gap="xs">
+                          {selectedRecipe.ingredients.map((ing, idx) => (
+                            <Badge key={idx} variant="dot" color="gray" size="sm">
+                              {ing.name}
+                            </Badge>
+                          ))}
+                        </Group>
+                      </Box>
+                    )}
+                  </Paper>
                 );
               })}
             </Stack>
