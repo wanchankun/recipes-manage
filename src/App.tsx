@@ -124,16 +124,31 @@ export default function App() {
     loadData();
   }, []);
 
-  // 献立を更新する（選んだ瞬間にDBに保存する）
+  // 献立を更新する
   const updatePlan = async (dateStr: string, recipeId: string | null) => {
+    // 1. まず、今の献立（変更前）の情報を取得しておく（チェックを消すため）
+    const oldPlan = plans.find(p => p.date === dateStr);
+
+    // 2. 献立を更新（前回のupsertの書き方を使います）
     const { error } = await supabase
       .from('weekly_plans')
-      .upsert({ date: dateStr, recipe_id: recipeId }, { onConflict: 'date' }); // upsertを使うのがプロの技！
+      .upsert({ date: dateStr, recipe_id: recipeId }, { onConflict: 'date' });
 
-    if (error) {
-      console.error('保存エラー:', error);
+    if (!error) {
+      // 3. もし料理が変更された、または外された場合、その日のチェックをリセットする
+      // 「前の料理」があった場合、その日のその料理のチェックを消す
+      if (oldPlan && oldPlan.recipe_id) {
+        await supabase
+          .from('ingredient_checks')
+          .delete()
+          .eq('date', dateStr)
+          .eq('recipe_id', oldPlan.recipe_id);
+      }
+      
+      // 4. 画面を更新
+      fetchPlans();
+      fetchChecks(); 
     }
-    fetchPlans(); 
   };
 
   // --- 削除ボタンを押した時 ---
