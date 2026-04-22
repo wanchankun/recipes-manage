@@ -139,8 +139,18 @@ export default function App() {
   // --- 削除ボタンを押した時 ---
   const handleDelete = async (id: string) => {
     if (confirm('このレシピを消してもいいですか？')) {
+      // 1. 【追加】そのレシピに関連する材料のチェック状態を削除
+      await supabase
+        .from('ingredient_checks')
+        .delete()
+        .eq('recipe_id', id);
+
+      // 2. 【既存】レシピ本体を削除
       await supabase.from('recipes').delete().eq('id', id);
-      fetchRecipes(); // 画面を更新
+      
+      // 3. 画面を更新
+      fetchRecipes();
+      fetchChecks(); // チェック状態の表示も最新にする
     }
   };
 
