@@ -188,7 +188,7 @@ export default function App() {
             <Stack gap="xs">
               {weekDays.map((dateStr) => {
                 const plan = plans.find(p => p.date === dateStr);
-                const dayLabels = ['月', '火', '水', '木', '金', '土', '日'];
+                const dayLabels = ['日', '月', '火', '水', '木', '金', '土'];
                 const dayName = dayLabels[new Date(dateStr).getDay()];
 
                 return (
