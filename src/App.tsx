@@ -356,15 +356,31 @@ export default function App() {
                 </Text>
               </Stack>
 
-              {/* おまけ：1日あたりの平均も出せます */}
+              {/* 1日あたりの平均を表示するエリア */}
               <Stack gap={0} align="flex-end">
-                <Text size="xs" c="dimmed">1日平均</Text>
+                <Text size="xs" c="dimmed">平均</Text>
                 <Text fw={700}>
-                  {Math.round(weekDays.reduce((weeklyTotal, dateStr) => {
-                    const plan = plans.find(p => p.date === dateStr);
-                    const recipe = recipes.find(r => r.id === (plan?.recipe_id));
-                    return weeklyTotal + (recipe?.ingredients.reduce((s, i) => s + i.price, 0) || 0);
-                  }, 0) / 7).toLocaleString()} 円
+                  {(() => {
+                    // 1. 1週間全体の合計金額を計算
+                    const totalAmount = weekDays.reduce((weeklyTotal, dateStr) => {
+                      const dailyPlans = plans.filter(p => p.date === dateStr);
+                      const dayTotal = dailyPlans.reduce((sum, plan) => {
+                        const recipe = recipes.find(r => r.id === plan.recipe_id);
+                        return sum + (recipe?.ingredients.reduce((s, i) => s + i.price, 0) || 0);
+                      }, 0);
+                      return weeklyTotal + dayTotal;
+                    }, 0);
+
+                    // 2. レシピが1つでも登録されている日の数を数える
+                    const plannedDaysCount = weekDays.filter(dateStr => 
+                      plans.some(p => p.date === dateStr)
+                    ).length;
+
+                    // 3. 登録がある日だけで割る（0日の場合は0円にする）
+                    const average = plannedDaysCount > 0 ? Math.round(totalAmount / plannedDaysCount) : 0;
+
+                    return average.toLocaleString();
+                  })()} 円
                 </Text>
               </Stack>
             </Group>
