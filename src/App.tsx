@@ -360,23 +360,27 @@ export default function App() {
               <Stack gap={0} align="flex-end">
                 <Text size="xs" c="dimmed">平均</Text>
                 <Text fw={700}>
+                  {/* --- 1日平均の計算部分 --- */}
                   {(() => {
-                    // 1. 1週間全体の合計金額を計算
+                    // 1. 合計金額（ここも「存在するレシピ」だけで計算するように念のため修正）
                     const totalAmount = weekDays.reduce((weeklyTotal, dateStr) => {
                       const dailyPlans = plans.filter(p => p.date === dateStr);
                       const dayTotal = dailyPlans.reduce((sum, plan) => {
                         const recipe = recipes.find(r => r.id === plan.recipe_id);
-                        return sum + (recipe?.ingredients.reduce((s, i) => s + i.price, 0) || 0);
+                        // レシピが存在する場合のみ金額を加算
+                        return sum + (recipe ? recipe.ingredients.reduce((s, i) => s + i.price, 0) : 0);
                       }, 0);
                       return weeklyTotal + dayTotal;
                     }, 0);
 
-                    // 2. レシピが1つでも登録されている日の数を数える
-                    const plannedDaysCount = weekDays.filter(dateStr => 
-                      plans.some(p => p.date === dateStr)
-                    ).length;
+                    // 2. 「有効なレシピが1つ以上登録されている日」だけを数える
+                    const plannedDaysCount = weekDays.filter(dateStr => {
+                      const dailyPlans = plans.filter(p => p.date === dateStr);
+                      // その日のプランの中に、現在のレシピ一覧に存在するIDが1つでもあるかチェック
+                      return dailyPlans.some(p => recipes.some(r => r.id === p.recipe_id));
+                    }).length;
 
-                    // 3. 登録がある日だけで割る（0日の場合は0円にする）
+                    // 3. 計算
                     const average = plannedDaysCount > 0 ? Math.round(totalAmount / plannedDaysCount) : 0;
 
                     return average.toLocaleString();
