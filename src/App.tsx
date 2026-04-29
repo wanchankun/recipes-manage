@@ -178,6 +178,7 @@ export default function App() {
       await supabase.from('recipes').delete().eq('id', id);
       
       // 3. 画面を更新
+      form.reset();
       fetchRecipes();
       fetchPlans();
       fetchChecks(); // チェック状態の表示も最新にする
