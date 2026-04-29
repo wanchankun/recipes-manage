@@ -260,10 +260,15 @@ export default function App() {
                       <Text fw={700} w={80}>{dateStr.slice(5)} ({dayName})</Text>
                       <Select
                         placeholder="料理を選択"
-                        data={recipes.map(r => ({ value: r.id, label: r.name }))}
+                        data={recipes
+                          .slice() // 元のデータを壊さないようにコピー
+                          .sort((a, b) => a.name.localeCompare(b.name, 'ja')) // 名前で日本語ソート
+                          .map(r => ({ value: r.id, label: r.name }))
+                        }
                         value={plan?.recipe_id || null}
                         onChange={(value) => updatePlan(dateStr, value)}
                         clearable
+                        searchable
                       />
                     </Group>
 
