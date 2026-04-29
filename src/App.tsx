@@ -231,6 +231,11 @@ export default function App() {
 
     form.reset();
     fetchRecipes();
+
+    // 保存が終わった後、再びレシピ名にカーソルを当てる
+    setTimeout(() => {
+      recipeNameRef.current?.focus();
+    }, 0);
   };
 
   return (
