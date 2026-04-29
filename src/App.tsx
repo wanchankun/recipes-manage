@@ -481,7 +481,10 @@ export default function App() {
               {recipes.length === 0 ? (
                 <Text c="dimmed" ta="center">レシピがまだありません</Text>
               ) : (
-                recipes.map((recipe) => (
+                recipes
+                      .slice() // 元のデータを壊さないようにコピー
+                      .sort((a, b) => a.name.localeCompare(b.name, 'ja')) // 日本語あいうえお順
+                      .map((recipe) => (
                   <Paper key={recipe.id} withBorder p="md" radius="md">
                     <Group justify="space-between" mb="xs">
                       <Group>
