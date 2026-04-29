@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { TextInput, NumberInput, Button, Stack, Container, Title, Group, ActionIcon, Paper, List, Text, Divider, Box } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { IconTrash, IconPlus, IconToolsKitchen2 } from '@tabler/icons-react';
@@ -23,6 +23,9 @@ export default function App() {
 
   // 今「編集」している最中かどうかを覚えておくための箱
   const [editingId, setEditingId] = useState<string | null>(null);  
+
+  // 材料リストの末尾の入力欄を指し示すための目印
+  const lastIngredientRef = useRef<HTMLInputElement>(null);
 
   const form = useForm({
     initialValues: {
@@ -407,14 +410,32 @@ export default function App() {
                   <TextInput label="料理名" placeholder="カレー" required {...form.getInputProps('recipeName')} />
                   {form.values.ingredients.map((_, index) => (
                     <Group key={index} align="flex-end">
-                      <TextInput label="材料" style={{ flex: 1 }} {...form.getInputProps(`ingredients.${index}.name`)} />
+                      <TextInput label="材料" 
+                        style={{ flex: 1 }} 
+                        {...form.getInputProps(`ingredients.${index}.name`)} 
+                        // ★ ここを追加：最後の要素にだけ ref を渡す
+                        ref={index === form.values.ingredients.length - 1 ? lastIngredientRef : null}
+                      />
                       <NumberInput label="価格" style={{ width: 100 }} {...form.getInputProps(`ingredients.${index}.price`)} />
                       <ActionIcon color="red" variant="light" onClick={() => form.removeListItem('ingredients', index)}>
                         <IconTrash size={16} />
                       </ActionIcon>
                     </Group>
                   ))}
-                  <Button variant="outline" leftSection={<IconPlus size={16} />} onClick={() => form.insertListItem('ingredients', { name: '', price: 0 })}>
+                  <Button 
+                    variant="outline" 
+                    leftSection={<IconPlus size={16} />} 
+                    onClick={() => {
+                        // 1. 材料リストを増やす
+                        form.insertListItem('ingredients', { name: '', price: 0 });
+                        
+                        // 2. 画面が更新された直後に、新しい入力欄にカーソルを当てる
+                        // setTimeoutを使うのは、入力欄が画面に現れるのを「一瞬待つ」ためです
+                        setTimeout(() => {
+                          lastIngredientRef.current?.focus();
+                        }, 0);
+                      }}
+                    >
                     材料を追加
                   </Button>
                   <Button type="submit" fullWidth mt="md">保存</Button>
