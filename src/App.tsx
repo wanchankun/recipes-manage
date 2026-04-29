@@ -21,6 +21,8 @@ interface Recipe {
 export default function App() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
 
+  const recipeNameRef = useRef<HTMLInputElement>(null);
+
   // 今「編集」している最中かどうかを覚えておくための箱
   const [editingId, setEditingId] = useState<string | null>(null);  
 
@@ -192,6 +194,9 @@ export default function App() {
     });
     // 画面の上（フォーム）に戻る
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // ★編集モードになった時もレシピ名にカーソルを当てる
+    setTimeout(() => recipeNameRef.current?.focus(), 100);
   };
 
   const handleSave = async (values: typeof form.values) => {
@@ -229,7 +234,18 @@ export default function App() {
   };
 
   return (
-    <Tabs defaultValue="plan">
+    <Tabs 
+      defaultValue="plan"
+      onChange={(value) => {
+        // もし「レシピ管理」タブがクリックされたら
+        if (value === 'recipes') {
+          // 画面が切り替わるのを一瞬待ってからフォーカス
+          setTimeout(() => {
+            recipeNameRef.current?.focus();
+          }, 0);
+        }
+      }}
+      >
       <Tabs.List>
         <Tabs.Tab value="plan">今週の献立</Tabs.Tab>
         <Tabs.Tab value="recipes">レシピ管理</Tabs.Tab>
@@ -407,7 +423,12 @@ export default function App() {
               <Title order={2} mb="lg">レシピを登録する</Title>
               <form onSubmit={form.onSubmit(handleSave)}>
                 <Stack>
-                  <TextInput label="料理名" placeholder="カレー" required {...form.getInputProps('recipeName')} />
+                  <TextInput 
+                    label="料理名" 
+                    placeholder="カレー" 
+                    required {...form.getInputProps('recipeName')}
+                    ref={recipeNameRef}
+                    />
                   {form.values.ingredients.map((_, index) => (
                     <Group key={index} align="flex-end">
                       <TextInput label="材料" 
