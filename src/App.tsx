@@ -160,6 +160,9 @@ export default function App() {
   // --- 削除ボタンを押した時 ---
   const handleDelete = async (id: string) => {
     if (confirm('このレシピを消してもいいですか？')) {
+      // 献立表からもこのレシピを削除しておく
+      await supabase.from('weekly_plans').delete().eq('recipe_id', id);
+    
       // 1. 【追加】そのレシピに関連する材料のチェック状態を削除
       await supabase
         .from('ingredient_checks')
@@ -171,6 +174,7 @@ export default function App() {
       
       // 3. 画面を更新
       fetchRecipes();
+      fetchPlans();
       fetchChecks(); // チェック状態の表示も最新にする
     }
   };
