@@ -182,6 +182,9 @@ export default function App() {
       fetchRecipes();
       fetchPlans();
       fetchChecks(); // チェック状態の表示も最新にする
+
+      // ★編集モードになった時もレシピ名にカーソルを当てる
+      setTimeout(() => recipeNameRef.current?.focus(), 100);
     }
   };
 
