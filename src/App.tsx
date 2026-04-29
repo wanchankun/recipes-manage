@@ -124,30 +124,36 @@ export default function App() {
     loadData();
   }, []);
 
-  // 献立を更新する
-  const updatePlan = async (dateStr: string, recipeId: string | null) => {
-    // 1. まず、今の献立（変更前）の情報を取得しておく（チェックを消すため）
-    const oldPlan = plans.find(p => p.date === dateStr);
-
-    // 2. 献立を更新（前回のupsertの書き方を使います）
+  // 献立にレシピを追加する
+  const addRecipeToPlan = async (dateStr: string, recipeId: string) => {
     const { error } = await supabase
       .from('weekly_plans')
-      .upsert({ date: dateStr, recipe_id: recipeId }, { onConflict: 'date' });
+      .insert({ date: dateStr, recipe_id: recipeId }); // upsertではなくinsert
 
     if (!error) {
-      // 3. もし料理が変更された、または外された場合、その日のチェックをリセットする
-      // 「前の料理」があった場合、その日のその料理のチェックを消す
-      if (oldPlan && oldPlan.recipe_id) {
-        await supabase
-          .from('ingredient_checks')
-          .delete()
-          .eq('date', dateStr)
-          .eq('recipe_id', oldPlan.recipe_id);
-      }
-      
-      // 4. 画面を更新
       fetchPlans();
-      fetchChecks(); 
+    } else {
+      alert("その料理は既に追加されています");
+    }
+  };
+
+  // 献立から特定のレシピを外す
+  const removeRecipeFromPlan = async (dateStr: string, recipeId: string) => {
+    const { error } = await supabase
+      .from('weekly_plans')
+      .delete()
+      .eq('date', dateStr)
+      .eq('recipe_id', recipeId);
+
+    if (!error) {
+      // 関連する材料チェックも削除
+      await supabase.from('ingredient_checks')
+        .delete()
+        .eq('date', dateStr)
+        .eq('recipe_id', recipeId);
+      
+      fetchPlans();
+      fetchChecks();
     }
   };
 
@@ -246,68 +252,83 @@ export default function App() {
 
             <Stack gap="xs">
               {weekDays.map((dateStr) => {
-                const plan = plans.find(p => p.date === dateStr);
+                // ★その日のプランをすべて抽出
+                const dailyPlans = plans.filter(p => p.date === dateStr);
                 const dayLabels = ['日', '月', '火', '水', '木', '金', '土'];
                 const dayName = dayLabels[new Date(dateStr).getDay()];
 
-                // ★ 選ばれているレシピの情報を探しておく
-                const selectedRecipe = recipes.find(r => r.id === plan?.recipe_id);
-
-                {/* 献立エリアの材料表示部分 */}
                 return (
-                  <Paper key={dateStr} withBorder p="xs" mb="xs" radius="md">
-                    <Group grow mb={selectedRecipe ? "xs" : 0}>
-                      <Text fw={700} w={80}>{dateStr.slice(5)} ({dayName})</Text>
+                  <Paper key={dateStr} withBorder p="md" mb="xs" radius="md">
+                    <Group justify="space-between" mb="xs">
+                      <Text fw={700}>{dateStr.slice(5)} ({dayName})</Text>
+                      
+                      {/* レシピ追加用のSelect（選んだら addRecipeToPlan を実行） */}
                       <Select
-                        placeholder="料理を選択"
+                        placeholder="料理を追加"
                         data={recipes
-                          .slice() // 元のデータを壊さないようにコピー
-                          .sort((a, b) => a.name.localeCompare(b.name, 'ja')) // 名前で日本語ソート
+                          .slice()
+                          .sort((a, b) => a.name.localeCompare(b.name, 'ja'))
                           .map(r => ({ value: r.id, label: r.name }))
                         }
-                        value={plan?.recipe_id || null}
-                        onChange={(value) => updatePlan(dateStr, value)}
-                        clearable
+                        value={null} // 常に空にしておく
+                        onChange={(value) => value && addRecipeToPlan(dateStr, value)}
                         searchable
+                        style={{ width: 150 }}
+                        size="xs"
                       />
                     </Group>
 
-                    <Group gap="sm" mt="xs" pl={0} justify="flex-start" style={{ flexWrap: 'wrap' }}>
-                      {/* ★ ここから：レシピが選ばれている時だけ材料を表示する */}
-                      {selectedRecipe?.ingredients.map((ing, idx) => {
-                        const ingredientKey = `${dateStr}-${selectedRecipe.id}-${ing.name}`;
-                        const isChecked = checkedIngredients.includes(ingredientKey);
+                    {/* ★登録された料理を並べて表示 */}
+                    <Stack gap="xs">
+                      {dailyPlans.map((plan) => {
+                        const selectedRecipe = recipes.find(r => r.id === plan.recipe_id);
+                        if (!selectedRecipe) return null;
 
                         return (
-                          <Box
-                            key={idx}
-                            onClick={() => toggleIngredient(dateStr, selectedRecipe.id, ing.name)}
-                            style={{
-                              // --- スマホで押しやすくするための設定 ---
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              padding: '10px 16px', // 上下左右にたっぷり余白をとる（重要！）
-                              fontSize: '14px',     // 文字を少し大きく
-                              borderRadius: '20px', // 丸みをもたせてボタン感を出す
-                              cursor: 'pointer',
-                              userSelect: 'none',
-                              transition: 'all 0.2s',
-                              border: '1px solid',
-                              // --- 状態による見た目の変化 ---
-                              borderColor: isChecked ? '#e0e0e0' : '#339af0',
-                              backgroundColor: isChecked ? '#f8f9fa' : '#ebf7ff',
-                              color: isChecked ? '#adb5bd' : '#1c7ed6',
-                              textDecoration: isChecked ? 'line-through' : 'none',
-                              // 押しやすくするために最小の幅を持たせる
-                              minWidth: '80px',
-                              justifyContent: 'center'
-                            }}
-                          >
-                            {ing.name}
+                          <Box key={plan.recipe_id} p="xs" style={{ border: '1px solid #eee', borderRadius: '8px', backgroundColor: '#fff' }}>
+                            <Group justify="space-between" mb="xs">
+                              <Text fw={600} size="sm">{selectedRecipe.name}</Text>
+                              <ActionIcon color="red" variant="subtle" size="sm" onClick={() => removeRecipeFromPlan(dateStr, selectedRecipe.id)}>
+                                <IconTrash size={14} />
+                              </ActionIcon>
+                            </Group>
+
+                            {/* 材料ボタンを表示 */}
+                            <Group gap="sm" justify="flex-start" style={{ flexWrap: 'wrap' }}>
+                              {selectedRecipe.ingredients.map((ing, idx) => {
+                                const ingredientKey = `${dateStr}-${selectedRecipe.id}-${ing.name}`;
+                                const isChecked = checkedIngredients.includes(ingredientKey);
+
+                                return (
+                                  <Box
+                                    key={idx}
+                                    onClick={() => toggleIngredient(dateStr, selectedRecipe.id, ing.name)}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      padding: '8px 12px',
+                                      fontSize: '13px',
+                                      borderRadius: '20px',
+                                      cursor: 'pointer',
+                                      userSelect: 'none',
+                                      border: '1px solid',
+                                      borderColor: isChecked ? '#e0e0e0' : '#339af0',
+                                      backgroundColor: isChecked ? '#f8f9fa' : '#ebf7ff',
+                                      color: isChecked ? '#adb5bd' : '#1c7ed6',
+                                      textDecoration: isChecked ? 'line-through' : 'none',
+                                      minWidth: '70px',
+                                      justifyContent: 'center'
+                                    }}
+                                  >
+                                    {ing.name}
+                                  </Box>
+                                );
+                              })}
+                            </Group>
                           </Box>
                         );
                       })}
-                    </Group>
+                    </Stack>
                   </Paper>
                 );
               })}
@@ -318,21 +339,19 @@ export default function App() {
               <Stack gap={0}>
                 <Text size="xs" c="dimmed" fw={700}>合計</Text>
                 <Text size="xl" fw={900} c="blue">
-                  {/* 1週間分の合計計算 */}
+                  {/* 合計金額の計算部分 */}
                   {weekDays.reduce((weeklyTotal, dateStr) => {
-                    // 1. その日の献立（plan）を探す
-                    const plan = plans.find(p => p.date === dateStr);
-                    if (!plan || !plan.recipe_id) return weeklyTotal;
-
-                    // 2. その献立のレシピ情報を探す
-                    const recipe = recipes.find(r => r.id === plan.recipe_id);
-                    if (!recipe) return weeklyTotal;
-
-                    // 3. そのレシピの材料費を合計する
-                    const recipeTotal = recipe.ingredients.reduce((sum, ing) => sum + ing.price, 0);
+                    // その日のプランをすべて取得
+                    const dailyPlans = plans.filter(p => p.date === dateStr);
                     
-                    return weeklyTotal + recipeTotal;
-                  }, 0).toLocaleString()} {/* 3桁カンマ区切りにする */}
+                    // その日の全レシピの材料費を合計
+                    const dayTotal = dailyPlans.reduce((sum, plan) => {
+                      const recipe = recipes.find(r => r.id === plan.recipe_id);
+                      return sum + (recipe?.ingredients.reduce((s, i) => s + i.price, 0) || 0);
+                    }, 0);
+
+                    return weeklyTotal + dayTotal;
+                  }, 0).toLocaleString()}
                   <Text span size="sm" ml={4}>円</Text>
                 </Text>
               </Stack>
