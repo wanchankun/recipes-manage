@@ -304,7 +304,6 @@ export default function App() {
                         }
                         value={null} // 常に空にしておく
                         onChange={(value) => value && addRecipeToPlan(dateStr, value)}
-                        searchable
                         style={{ width: 150 }}
                         size="xs"
                       />
